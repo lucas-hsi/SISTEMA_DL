@@ -1,0 +1,60 @@
+/* Protected Route Loading */
+.protected-route-loading,
+.public-route-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(
+    135deg,
+    #667eea 0%,
+    #764ba2 100%
+  );
+  color: white;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.protected-route-loading p,
+.public-route-loading p {
+  margin-top: 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+  text-align: center;
+  opacity: 0.9;
+}
+
+/* Dark Theme */
+[data-theme="dark"] .protected-route-loading,
+[data-theme="dark"] .public-route-loading {
+  background: linear-gradient(
+    135deg,
+    #1e293b 0%,
+    #0f172a 100%
+  );
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .protected-route-loading p,
+  .public-route-loading p {
+    font-size: 1rem;
+    padding: 0 1rem;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .protected-route-loading,
+  .public-route-loading {
+    background: #667eea;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .protected-route-loading,
+  .public-route-loading {
+    display: none;
+  }
+}

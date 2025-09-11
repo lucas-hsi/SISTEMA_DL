@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: dl_postgres
+    environment:
+      POSTGRES_DB: dl_sistema
+      POSTGRES_USER: dl_user
+      POSTGRES_PASSWORD: dl_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - dl_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dl_user -d dl_sistema"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dl_backend
+    environment:
+      - DATABASE_URL=postgresql://dl_user:dl_password@postgres:5432/dl_sistema
+      - SECRET_KEY=your-secret-key-here-change-in-production
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - MERCADOLIVRE_CLIENT_ID=your-ml-client-id
+      - MERCADOLIVRE_CLIENT_SECRET=your-ml-client-secret
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dl_network
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dl_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - dl_network
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis para cache (opcional)
+  redis:
+    image: redis:7-alpine
+    container_name: dl_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - dl_network
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx para proxy reverso (produção)
+  nginx:
+    image: nginx:alpine
+    container_name: dl_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - dl_network
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  dl_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

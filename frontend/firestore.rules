@@ -1,0 +1,219 @@
+rules_version = '2';
+
+// Regras de segurança do Firestore para DL Auto Peças
+// Implementa controle de acesso baseado em inquilino e perfil de usuário
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Função para verificar se o usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Função para verificar se o usuário pertence ao inquilino
+    function belongsToTenant(tenantId) {
+      return isAuthenticated() && 
+             request.auth.token.tenant_id == tenantId;
+    }
+    
+    // Função para verificar o perfil do usuário
+    function hasRole(role) {
+      return isAuthenticated() && 
+             request.auth.token.role == role;
+    }
+    
+    // Função para verificar se é o próprio usuário
+    function isOwner(userId) {
+      return isAuthenticated() && 
+             request.auth.uid == userId;
+    }
+    
+    // Função para verificar permissões de escrita
+    function canWrite(tenantId) {
+      return belongsToTenant(tenantId) && 
+             (hasRole('gestor') || hasRole('vendedor'));
+    }
+    
+    // Função para verificar permissões de leitura
+    function canRead(tenantId) {
+      return belongsToTenant(tenantId);
+    }
+    
+    // === COLEÇÕES PRINCIPAIS ===
+    
+    // Usuários - acesso restrito ao próprio usuário e gestores
+    match /users/{userId} {
+      allow read: if isOwner(userId) || hasRole('gestor');
+      allow write: if isOwner(userId) || hasRole('gestor');
+    }
+    
+    // Inquilinos - apenas gestores podem gerenciar
+    match /tenants/{tenantId} {
+      allow read: if belongsToTenant(tenantId);
+      allow write: if belongsToTenant(tenantId) && hasRole('gestor');
+      
+      // Subcoleções do inquilino
+      match /settings/{document=**} {
+        allow read: if belongsToTenant(tenantId);
+        allow write: if belongsToTenant(tenantId) && hasRole('gestor');
+      }
+    }
+    
+    // Clientes - acesso baseado no inquilino
+    match /customers/{customerId} {
+      allow read: if canRead(resource.data.tenant_id);
+      allow write: if canWrite(resource.data.tenant_id);
+      allow create: if canWrite(request.resource.data.tenant_id);
+    }
+    
+    // Produtos - acesso baseado no inquilino
+    match /products/{productId} {
+      allow read: if canRead(resource.data.tenant_id);
+      allow write: if canWrite(resource.data.tenant_id);
+      allow create: if canWrite(request.resource.data.tenant_id);
+      
+      // Histórico de preços
+      match /price_history/{historyId} {
+        allow read: if canRead(get(/databases/$(database)/documents/products/$(productId)).data.tenant_id);
+        allow write: if canWrite(get(/databases/$(database)/documents/products/$(productId)).data.tenant_id);
+      }
+      
+      // Estoque
+      match /inventory/{inventoryId} {
+        allow read: if canRead(get(/databases/$(database)/documents/products/$(productId)).data.tenant_id);
+        allow write: if canWrite(get(/databases/$(database)/documents/products/$(productId)).data.tenant_id);
+      }
+    }
+    
+    // Pedidos - acesso baseado no inquilino
+    match /orders/{orderId} {
+      allow read: if canRead(resource.data.tenant_id);
+      allow write: if canWrite(resource.data.tenant_id);
+      allow create: if canWrite(request.resource.data.tenant_id);
+      
+      // Itens do pedido
+      match /items/{itemId} {
+        allow read: if canRead(get(/databases/$(database)/documents/orders/$(orderId)).data.tenant_id);
+        allow write: if canWrite(get(/databases/$(database)/documents/orders/$(orderId)).data.tenant_id);
+      }
+      
+      // Histórico do pedido
+      match /history/{historyId} {
+        allow read: if canRead(get(/databases/$(database)/documents/orders/$(orderId)).data.tenant_id);
+        allow write: if canWrite(get(/databases/$(database)/documents/orders/$(orderId)).data.tenant_id);
+      }
+    }
+    
+    // Fornecedores - acesso baseado no inquilino
+    match /suppliers/{supplierId} {
+      allow read: if canRead(resource.data.tenant_id);
+      allow write: if canWrite(resource.data.tenant_id);
+      allow create: if canWrite(request.resource.data.tenant_id);
+    }
+    
+    // Categorias - acesso baseado no inquilino
+    match /categories/{categoryId} {
+      allow read: if canRead(resource.data.tenant_id);
+      allow write: if canWrite(resource.data.tenant_id);
+      allow create: if canWrite(request.resource.data.tenant_id);
+    }
+    
+    // === COLEÇÕES DE SISTEMA ===
+    
+    // Logs de auditoria - apenas leitura para gestores
+    match /audit_logs/{logId} {
+      allow read: if hasRole('gestor') && canRead(resource.data.tenant_id);
+      allow create: if isAuthenticated(); // Sistema pode criar logs
+    }
+    
+    // Configurações globais - apenas administradores
+    match /system_config/{configId} {
+      allow read: if hasRole('admin');
+      allow write: if hasRole('admin');
+    }
+    
+    // === COLEÇÕES DE INTEGRAÇÃO ===
+    
+    // Dados do Mercado Livre - acesso baseado no inquilino
+    match /mercadolivre_data/{dataId} {
+      allow read: if canRead(resource.data.tenant_id);
+      allow write: if canWrite(resource.data.tenant_id) && hasRole('anuncios');
+      allow create: if canWrite(request.resource.data.tenant_id) && hasRole('anuncios');
+    }
+    
+    // Sincronização - acesso baseado no inquilino
+    match /sync_status/{syncId} {
+      allow read: if canRead(resource.data.tenant_id);
+      allow write: if canWrite(resource.data.tenant_id);
+      allow create: if canWrite(request.resource.data.tenant_id);
+    }
+    
+    // === COLEÇÕES TEMPORÁRIAS ===
+    
+    // Cache de sessão - acesso apenas ao próprio usuário
+    match /user_cache/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      match /sessions/{sessionId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Uploads temporários - acesso baseado no usuário
+    match /temp_uploads/{uploadId} {
+      allow read, write: if isOwner(resource.data.user_id);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.user_id);
+    }
+    
+    // === REGRAS DE FALLBACK ===
+    
+    // Negar acesso a qualquer documento não especificado
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// === COMENTÁRIOS E DOCUMENTAÇÃO ===
+
+/*
+ESTRUTURA DE DADOS ESPERADA:
+
+1. Usuários devem ter um token JWT com:
+   - tenant_id: ID do inquilino
+   - role: 'gestor', 'vendedor', 'anuncios', 'admin'
+   - uid: ID único do usuário
+
+2. Documentos devem incluir:
+   - tenant_id: Para isolamento por inquilino
+   - created_at: Timestamp de criação
+   - updated_at: Timestamp de atualização
+   - created_by: ID do usuário que criou
+   - updated_by: ID do usuário que atualizou
+
+3. Perfis de usuário:
+   - gestor: Acesso total ao inquilino
+   - vendedor: Acesso de leitura/escrita limitado
+   - anuncios: Acesso específico para integração ML
+   - admin: Acesso de sistema (super usuário)
+
+SEGURANÇA:
+- Todos os acessos requerem autenticação
+- Isolamento completo por inquilino
+- Controle granular baseado em perfis
+- Logs de auditoria para rastreabilidade
+- Validação de propriedade para dados pessoais
+
+PERFORMANCE:
+- Índices recomendados:
+  - tenant_id em todas as coleções principais
+  - created_at para ordenação temporal
+  - status para filtros de estado
+  - user_id para dados pessoais
+
+MANUTENÇÃO:
+- Revisar regras mensalmente
+- Monitorar logs de acesso negado
+- Atualizar conforme novos recursos
+- Testar com diferentes perfis de usuário
+*/
