@@ -1,6 +1,37 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import AuthProvider from "@/providers/AuthProvider";
 import "./globals.css";
+
+/*
+  SISTEMA DE AUTENTICAÇÃO ROBUSTO - IMPLEMENTADO
+  
+  ✅ FASE 1: Interceptador Axios Inteligente
+  - Detecta automaticamente tokens expirados (401)
+  - Renova tokens transparentemente
+  - Gerencia fila de requisições pendentes
+  - Fallback inteligente com múltiplas tentativas
+  
+  ✅ FASE 2: Renovação Preventiva
+  - Timer inteligente (15min antes de expirar)
+  - Sincronização multi-tab via localStorage
+  - Notificações discretas de status
+  - Recuperação automática de falhas
+  
+  ✅ FASE 3: AuthContext Melhorado
+  - Auto-renovação transparente
+  - Estados de loading e erro
+  - Funções de verificação e renovação manual
+  - Integração com serviços de renovação
+  
+  ✅ FASE 4: Tratamento de Erros Gracioso
+  - Sistema de notificações discretas
+  - Modal de reautenticação inteligente
+  - Preservação automática de dados de formulário
+  - Recuperação de sessão com dados preservados
+  - Fallback para diferentes tipos de erro
+*/
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,11 +54,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
       >
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange={false}
+        >
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

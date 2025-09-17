@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.api.v1.api import api_router
+from app.db import base  # noqa: F401
+import os
 
 app = FastAPI(
     title="DL_SISTEMA API",
@@ -22,6 +25,11 @@ app.add_middleware(
     allow_methods=["*"],         # Permite todos os métodos (GET, POST, etc.)
     allow_headers=["*"],         # Permite todos os cabeçalhos
 )
+
+# Configurar servimento de arquivos estáticos
+static_dir = "backend/static"
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Include API v1 router
 app.include_router(api_router, prefix="/api/v1")

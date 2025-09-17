@@ -13,7 +13,15 @@ class Settings(BaseSettings):
     # Variáveis de autenticação
     SECRET_KEY: str = "your-secret-key-here-change-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 120  # 2 horas
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 dias
+
+    # Variáveis da API de Frete (Frenet)
+    FRENET_API_TOKEN: str
+    SELLER_CEP: str
+    
+    # Variável da API OpenAI
+    OPENAI_API_KEY: str
 
     # Variável que será construída pela nossa lógica
     DATABASE_URL: str | None = None

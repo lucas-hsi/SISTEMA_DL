@@ -4,6 +4,8 @@ from sqlalchemy.sql import func
 from app.db.base_class import Base
 
 class User(Base):
+    __tablename__ = "users"
+    
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
@@ -11,8 +13,10 @@ class User(Base):
     role = Column(String, nullable=False) # Ex: 'gestor', 'vendedor', 'anuncios'
     is_active = Column(Boolean(), default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    company_id = Column(Integer, ForeignKey("company.id"))
-    company = relationship("Company")
+    company_id = Column(Integer, ForeignKey("companies.id"))
+    company = relationship("Company", back_populates="users")
+    orders = relationship("Order", back_populates="user", lazy="dynamic")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     
     # Campos de metas e limites para funcionários
     sales_goal = Column(Numeric(10, 2), nullable=True)  # Meta de vendas

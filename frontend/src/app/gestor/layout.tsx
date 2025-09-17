@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 
@@ -10,54 +11,38 @@ interface GestorLayoutProps {
 }
 
 const GestorLayout = ({ children }: GestorLayoutProps) => {
+  // TODAS AS CHAMADAS DE HOOKS NO TOPO - ANTES DE QUALQUER LÓGICA CONDICIONAL
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const [hasAccess, setHasAccess] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        // Verificar tokens de autenticação (priorizar access_token)
-        const accessToken = localStorage.getItem('access_token');
-        const token = localStorage.getItem('token');
-        const authToken = accessToken || token;
-        
-        // Verificar perfil do usuário (priorizar selectedRole)
-        const selectedRole = localStorage.getItem('selectedRole');
-        const userProfile = localStorage.getItem('userProfile');
-        const currentProfile = selectedRole || userProfile;
-
-        // Verificar se o usuário está autenticado e tem perfil
-        if (!authToken || !currentProfile) {
-          router.push('/login');
-          return;
-        }
-
-        // Verificar se o perfil é de gestor (case insensitive)
-        if (currentProfile.toLowerCase() !== 'gestor') {
-          // Se não for gestor, redirecionar para a página apropriada ou login
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('token');
-          localStorage.removeItem('userProfile');
-          localStorage.removeItem('selectedRole');
-          router.push('/login');
-          return;
-        }
-
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
+    const checkAccess = () => {
+      if (isLoading) return;
+      
+      if (!isAuthenticated) {
         router.push('/login');
-      } finally {
-        setIsLoading(false);
+        return;
       }
+
+      // LÓGICA RESTRITIVA: Permitir acesso APENAS se for 'GESTOR'
+      const currentRole = user?.role?.toUpperCase();
+      
+      if (currentRole !== 'GESTOR') {
+        // Se não for gestor, redirecionar para login
+        router.push('/login');
+        return;
+      }
+
+      setHasAccess(true);
     };
 
-    checkAuth();
-  }, [router]);
+    checkAccess();
+  }, [isAuthenticated, isLoading, user, router, logout]);
 
-  // Mostrar loading enquanto verifica autenticação
-  if (isLoading) {
+  // LÓGICA CONDICIONAL APÓS TODAS AS CHAMADAS DE HOOKS
+  if (isLoading || !hasAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
@@ -68,27 +53,38 @@ const GestorLayout = ({ children }: GestorLayoutProps) => {
     );
   }
 
-  // Se não estiver autenticado, não renderizar nada (redirecionamento já foi feito)
-  if (!isAuthenticated) {
-    return null;
-  }
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar */}
-      <Sidebar className="fixed left-0 top-0 h-full z-30" />
-      
-      {/* Main Content Area */}
-      <div className="flex-1 ml-64">
-        {/* Header */}
-        <Header className="sticky top-0 z-20" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
+      <div className="flex gap-4 h-[calc(100vh-2rem)]">
+        {/* Sidebar */}
+        <Sidebar 
+          className={`transition-all duration-300 ease-in-out z-30 ${
+            sidebarCollapsed ? 'w-20' : 'w-64'
+          }`}
+          roleDisplayName="do Gestor"
+          collapsed={sidebarCollapsed}
+        />
         
-        {/* Page Content */}
-        <main className="p-6">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col gap-4">
+          {/* Header */}
+          <Header 
+            className="z-20" 
+            onToggleSidebar={toggleSidebar}
+            sidebarCollapsed={sidebarCollapsed}
+          />
+          
+          {/* Page Content */}
+          <main className="flex-1 bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 overflow-auto">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );

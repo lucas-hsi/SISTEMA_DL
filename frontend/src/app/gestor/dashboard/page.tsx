@@ -9,6 +9,7 @@ import {
   FiBarChart,
   FiActivity
 } from 'react-icons/fi';
+import PageTitle from '@/components/ui/PageTitle';
 
 const DashboardPage = () => {
   const [stats, setStats] = useState({
@@ -67,12 +68,11 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard do Gestor</h1>
-        <p className="text-gray-600">
-          Visão geral do desempenho da sua equipe e vendas.
-        </p>
-      </div>
+      <PageTitle 
+        title="Dashboard do Gestor"
+        subtitle="Visão geral do desempenho da sua equipe e vendas"
+        colorScheme="gestor"
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

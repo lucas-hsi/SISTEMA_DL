@@ -2,38 +2,71 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiEye, FiEyeOff, FiUser, FiLock, FiMail } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiUser, FiLock, FiMail, FiUsers, FiShoppingCart, FiSpeaker } from 'react-icons/fi';
 import { useAuth } from '@/hooks/useAuth';
 
-type UserProfile = 'GESTOR' | 'VENDEDOR' | 'ANÚNCIOS';
+type UserRole = 'gestor' | 'vendedor' | 'anuncios';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedProfile, setSelectedProfile] = useState<UserProfile>('GESTOR');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('gestor');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
   const { login, isLoading } = useAuth();
-
-  const profileOptions: UserProfile[] = ['GESTOR', 'VENDEDOR', 'ANÚNCIOS'];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
-      const result = await login({ email, password, profile: selectedProfile });
+      await login({ email, password });
       
-      if (!result.success) {
-        setError(result.error || 'Erro ao fazer login. Tente novamente.');
+      // Salvar o selectedRole no localStorage
+      localStorage.setItem('selectedRole', selectedRole);
+      
+      // Redirecionamento baseado no selectedRole
+      switch (selectedRole) {
+        case 'gestor':
+          router.push('/gestor/dashboard');
+          break;
+        case 'vendedor':
+          router.push('/vendedor/dashboard');
+          break;
+        case 'anuncios':
+          router.push('/anuncios/dashboard');
+          break;
+        default:
+          router.push('/gestor/dashboard');
       }
-      // O redirecionamento é feito automaticamente pelo hook useAuth
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro no login:', error);
-      setError(error.message || 'Erro ao fazer login. Tente novamente.');
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer login. Tente novamente.';
+      setError(errorMessage);
     }
   };
+
+  const roleOptions = [
+    {
+      value: 'gestor' as UserRole,
+      label: 'GESTOR',
+      icon: FiUsers,
+      description: 'Administração geral'
+    },
+    {
+      value: 'vendedor' as UserRole,
+      label: 'VENDEDOR',
+      icon: FiShoppingCart,
+      description: 'Vendas e atendimento'
+    },
+    {
+      value: 'anuncios' as UserRole,
+      label: 'ANÚNCIOS',
+      icon: FiSpeaker,
+      description: 'Gestão de anúncios'
+    }
+  ];
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
@@ -49,26 +82,33 @@ export default function LoginPage() {
             <p className="text-gray-400">Faça login para continuar</p>
           </div>
 
-          {/* Seletor de Perfil */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-300 mb-3">
-              Selecione seu perfil
-            </label>
-            <div className="flex bg-gray-700/50 rounded-xl p-1">
-              {profileOptions.map((profile) => (
-                <button
-                  key={profile}
-                  type="button"
-                  onClick={() => setSelectedProfile(profile)}
-                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    selectedProfile === profile
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-600/50'
-                  }`}
-                >
-                  {profile}
-                </button>
-              ))}
+          {/* Seletor de Perfis */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-white mb-4 text-center">Selecione seu perfil</h3>
+            <div className="grid grid-cols-1 gap-3">
+              {roleOptions.map((role) => {
+                const IconComponent = role.icon;
+                return (
+                  <button
+                    key={role.value}
+                    type="button"
+                    onClick={() => setSelectedRole(role.value)}
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                      selectedRole === role.value
+                        ? 'border-blue-500 bg-blue-500/20 text-white'
+                        : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500 hover:bg-gray-700/50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <IconComponent className="w-6 h-6" />
+                      <div>
+                        <div className="font-semibold">{role.label}</div>
+                        <div className="text-sm opacity-75">{role.description}</div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

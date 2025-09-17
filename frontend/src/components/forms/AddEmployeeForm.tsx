@@ -55,16 +55,17 @@ const AddEmployeeForm = ({ onClose, onSuccess }: AddEmployeeFormProps) => {
       };
 
       // Chamar API para criar funcionário
-      await api.post('/api/v1/users/', payload);
+      await api.post('/users', payload);
 
       // Sucesso - fechar modal e atualizar lista
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao criar funcionário:', err);
+      const axiosError = err as { response?: { data?: { detail?: string } }; message?: string };
       setError(
-        err.response?.data?.detail || 
-        err.message || 
+        axiosError.response?.data?.detail || 
+        axiosError.message || 
         'Erro ao criar funcionário. Tente novamente.'
       );
     } finally {
@@ -75,23 +76,23 @@ const AddEmployeeForm = ({ onClose, onSuccess }: AddEmployeeFormProps) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Adicionar Novo Funcionário</h2>
-        <p className="text-sm text-gray-600 mt-1">Preencha os dados do novo funcionário</p>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Adicionar Novo Funcionário</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Preencha os dados do novo funcionário</p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         </div>
       )}
 
       {/* Nome Completo */}
       <div>
-        <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Nome Completo
         </label>
         <div className="relative">
-          <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
           <input
             type="text"
             id="full_name"
@@ -99,7 +100,7 @@ const AddEmployeeForm = ({ onClose, onSuccess }: AddEmployeeFormProps) => {
             value={formData.full_name}
             onChange={handleInputChange}
             required
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             placeholder="Digite o nome completo"
           />
         </div>
@@ -107,11 +108,11 @@ const AddEmployeeForm = ({ onClose, onSuccess }: AddEmployeeFormProps) => {
 
       {/* E-mail */}
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           E-mail
         </label>
         <div className="relative">
-          <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
           <input
             type="email"
             id="email"
@@ -119,7 +120,7 @@ const AddEmployeeForm = ({ onClose, onSuccess }: AddEmployeeFormProps) => {
             value={formData.email}
             onChange={handleInputChange}
             required
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             placeholder="Digite o e-mail"
           />
         </div>
@@ -127,11 +128,11 @@ const AddEmployeeForm = ({ onClose, onSuccess }: AddEmployeeFormProps) => {
 
       {/* Senha */}
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Senha
         </label>
         <div className="relative">
-          <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
           <input
             type="password"
             id="password"
@@ -140,7 +141,7 @@ const AddEmployeeForm = ({ onClose, onSuccess }: AddEmployeeFormProps) => {
             onChange={handleInputChange}
             required
             minLength={6}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             placeholder="Digite a senha (mín. 6 caracteres)"
           />
         </div>
@@ -148,18 +149,18 @@ const AddEmployeeForm = ({ onClose, onSuccess }: AddEmployeeFormProps) => {
 
       {/* Perfil (Role) */}
       <div>
-        <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Perfil
         </label>
         <div className="relative">
-          <FiUserCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <FiUserCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
           <select
             id="role"
             name="role"
             value={formData.role}
             onChange={handleInputChange}
             required
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 appearance-none bg-white"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 appearance-none bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
           >
             <option value="vendedor">Vendedor</option>
             <option value="anuncios">Anúncios</option>
@@ -172,7 +173,7 @@ const AddEmployeeForm = ({ onClose, onSuccess }: AddEmployeeFormProps) => {
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+          className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-200 font-medium"
           disabled={isLoading}
         >
           Cancelar

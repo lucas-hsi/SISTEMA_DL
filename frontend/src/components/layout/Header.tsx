@@ -1,51 +1,66 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
+import useScrollDirection from '@/hooks/useScrollDirection';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   FiSearch, 
   FiBell, 
   FiUser, 
   FiChevronDown,
   FiSettings,
-  FiLogOut
+  FiLogOut,
+  FiMenu,
+  FiSun,
+  FiMoon
 } from 'react-icons/fi';
 
 interface HeaderProps {
   title?: string;
   className?: string;
+  onToggleSidebar?: () => void;
+  sidebarCollapsed?: boolean;
 }
 
-const Header = ({ title = 'Dashboard', className = '' }: HeaderProps) => {
-  const [userProfile, setUserProfile] = useState<string>('');
+const Header = ({ title = 'Dashboard', className = '', onToggleSidebar, sidebarCollapsed = false }: HeaderProps) => {
+  const { theme, setTheme } = useTheme();
+  const scrollDirection = useScrollDirection();
+  const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Priorizar selectedRole, mas manter compatibilidade com userProfile
-      const selectedRole = localStorage.getItem('selectedRole');
-      const userProfile = localStorage.getItem('userProfile');
-      const profile = selectedRole || userProfile || 'Gestor';
-      setUserProfile(profile);
-    }
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleLogout = () => {
-    // Limpar todos os dados de autenticação
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('token');
-    localStorage.removeItem('userProfile');
-    localStorage.removeItem('selectedRole');
-    window.location.href = '/login';
+    logout();
   };
 
   return (
-    <header className={`bg-white shadow-sm border-b border-gray-200 ${className}`}>
+    <header className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 transition-transform duration-300 ease-in-out ${
+      scrollDirection === 'down' && scrollY > 200 ? '-translate-y-full' : 'translate-y-0'
+    } ${className}`}>
       <div className="flex items-center justify-between px-6 py-4">
-        {/* Left Section - Title and Welcome */}
-        <div className="flex items-center">
+        {/* Left Section - Menu Toggle and Title */}
+        <div className="flex items-center space-x-4">
+          {/* Menu Toggle Button */}
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200"
+              title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
+            >
+              <FiMenu className="w-5 h-5" />
+            </button>
+          )}
+          
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
               Bem-vindo de volta! Aqui está o que está acontecendo hoje.
             </p>
           </div>
@@ -56,53 +71,62 @@ const Header = ({ title = 'Dashboard', className = '' }: HeaderProps) => {
           {/* Search Bar */}
           <div className="relative hidden md:block">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FiSearch className="h-5 w-5 text-gray-400" />
+              <FiSearch className="h-5 w-5 text-slate-400" />
             </div>
             <input
               type="text"
               placeholder="Buscar..."
-              className="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="block w-64 pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
             />
           </div>
 
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:text-slate-600 dark:focus:text-slate-300 transition-all duration-200"
+            title={theme === 'dark' ? 'Alternar para tema claro' : 'Alternar para tema escuro'}
+          >
+            {theme === 'dark' ? <FiSun className="h-5 w-5" /> : <FiMoon className="h-5 w-5" />}
+          </button>
+
           {/* Notifications */}
-          <button className="relative p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors duration-200">
+          <button className="relative p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none focus:text-slate-600 dark:focus:text-slate-300 transition-colors duration-200">
             <FiBell className="h-6 w-6" />
             {/* Notification Badge */}
-            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
+            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white dark:ring-slate-800"></span>
           </button>
 
           {/* User Profile Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition-colors duration-200"
+              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:bg-slate-100 dark:focus:bg-slate-700 transition-colors duration-200"
             >
-              <div className="flex items-center justify-center w-8 h-8 bg-blue-500 rounded-full">
+              <div className="flex items-center justify-center w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full">
                 <FiUser className="w-4 h-4 text-white" />
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-medium text-gray-900">{userProfile}</p>
-                <p className="text-xs text-gray-500">Administrador</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">{user?.name || 'Usuário'}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{user?.role || 'Usuário'}</p>
               </div>
-              <FiChevronDown className="w-4 h-4 text-gray-400" />
+              <FiChevronDown className="w-4 h-4 text-slate-400" />
             </button>
 
             {/* Dropdown Menu */}
             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
+                <button className="flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200">
                   <FiUser className="w-4 h-4 mr-3" />
                   Meu Perfil
                 </button>
-                <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                <button className="flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200">
                   <FiSettings className="w-4 h-4 mr-3" />
                   Configurações
                 </button>
-                <hr className="my-1 border-gray-200" />
+                <hr className="my-1 border-slate-200 dark:border-slate-700" />
                 <button
                   onClick={handleLogout}
-                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
+                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
                 >
                   <FiLogOut className="w-4 h-4 mr-3" />
                   Sair

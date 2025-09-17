@@ -42,15 +42,15 @@ def check_database_tables():
         except Exception as e:
             print(f"Erro ao verificar tabela company: {e}")
         
-        # Verifica estrutura da tabela user
+        # Verifica estrutura da tabela users
         try:
-            result = db.execute(text("PRAGMA table_info(user)"))
+            result = db.execute(text("PRAGMA table_info(users)"))
             user_columns = result.fetchall()
-            print("\nTabela 'user':")
+            print("\nTabela 'users':")
             for col in user_columns:
                 print(f"  - {col[1]} ({col[2]})")
         except Exception as e:
-            print(f"Erro ao verificar tabela user: {e}")
+            print(f"Erro ao verificar tabela users: {e}")
             
         print("\n=== CONTAGEM DE REGISTROS ===")
         
@@ -63,7 +63,7 @@ def check_database_tables():
             print(f"Erro ao contar empresas: {e}")
             
         try:
-            result = db.execute(text("SELECT COUNT(*) FROM user"))
+            result = db.execute(text("SELECT COUNT(*) FROM users"))
             user_count = result.fetchone()[0]
             print(f"Usuários: {user_count}")
         except Exception as e:

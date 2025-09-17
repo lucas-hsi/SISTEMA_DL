@@ -3,17 +3,28 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.crud import crud_user
-from app.db.deps import get_db, get_current_manager, get_current_user
+from app.api.v1 import deps
 from app.schemas.user import User, UserCreate, UserUpdate
 from app.models.user import User as UserModel
 
 router = APIRouter()
 
+@router.get("/me", response_model=User)
+def get_current_user_profile(
+    *,
+    current_user: UserModel = Depends(deps.get_current_user)
+):
+    """
+    Get current authenticated user profile.
+    Accessible by any authenticated user.
+    """
+    return current_user
+
 @router.get("/users/", response_model=List[User])
 def get_users(
     *,
-    db: Session = Depends(get_db),
-    current_manager: UserModel = Depends(get_current_manager)
+    db: Session = Depends(deps.get_db),
+    current_manager: UserModel = Depends(deps.get_current_manager)
 ):
     """
     Get all users from the same company as the current manager.
@@ -25,10 +36,10 @@ def get_users(
 @router.put("/users/{user_id}", response_model=User)
 def update_user(
     *,
-    db: Session = Depends(get_db),
+    db: Session = Depends(deps.get_db),
     user_id: int,
     user_in: UserUpdate,
-    current_manager: UserModel = Depends(get_current_manager)
+    current_manager: UserModel = Depends(deps.get_current_manager)
 ):
     """
     Update user information including goals and discount limits.
@@ -54,9 +65,9 @@ def update_user(
 @router.delete("/users/{user_id}", response_model=User)
 def delete_user(
     *,
-    db: Session = Depends(get_db),
+    db: Session = Depends(deps.get_db),
     user_id: int,
-    current_manager: UserModel = Depends(get_current_manager)
+    current_manager: UserModel = Depends(deps.get_current_manager)
 ):
     """
     Deactivate (soft delete) a user.
@@ -89,7 +100,7 @@ def delete_user(
 @router.post("/users/", response_model=User, status_code=status.HTTP_201_CREATED)
 def create_user(
     *,
-    db: Session = Depends(get_db),
+    db: Session = Depends(deps.get_db),
     user_in: UserCreate,
 ):
     """
@@ -116,7 +127,7 @@ def create_user(
 @router.post("/companies/", status_code=status.HTTP_201_CREATED)
 def create_company(
     *,
-    db: Session = Depends(get_db),
+    db: Session = Depends(deps.get_db),
     name: str,
 ):
     """

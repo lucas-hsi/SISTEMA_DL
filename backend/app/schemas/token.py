@@ -3,7 +3,9 @@ from typing import Optional
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
+    expires_in: int  # Tempo em segundos até expiração
     user_id: Optional[int] = None
     company_id: Optional[int] = None
     email: Optional[str] = None
@@ -12,3 +14,6 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: str | None = None
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str

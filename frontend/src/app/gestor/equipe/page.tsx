@@ -227,7 +227,7 @@ const TeamManagementPage = () => {
     try {
       setIsLoading(true);
       setError('');
-      const response = await api.get('/api/v1/users/');
+      const response = await api.get('/users');
       setEmployees(response.data);
       setFilteredEmployees(response.data);
     } catch (error: any) {
